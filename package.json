@@ -2,6 +2,7 @@
   "name": "frontend-examen-final",
   "private": true,
   "version": "0.0.0",
+  "homepage": "https://natalycux.github.io/FRONTEND-EXAMEN-FINAL",
   "type": "module",
   "scripts": {
     "dev": "vite",

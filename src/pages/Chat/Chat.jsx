@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../../services/authService';
-import mensajesService from '../../services/mensajesService';
+import mensajesService from '../../services/mensajesService'; // Asegúrate que la ruta sea correcta
 import './Chat.css';
 
 const Chat = () => {
@@ -9,16 +9,46 @@ const Chat = () => {
   const [mensaje, setMensaje] = useState('');
   const [mensajes, setMensajes] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const messagesEndRef = useRef(null);
   const username = authService.getUsername();
 
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
   useEffect(() => {
-    // Verificar autenticación
     if (!authService.isAuthenticated()) {
       navigate('/login');
+      return;
     }
+    
+    cargarMensajes();
+    
+    const interval = setInterval(cargarMensajes, 5000);
+    
+    return () => clearInterval(interval);
   }, [navigate]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [mensajes]);
+
+  // --- CAMBIO 1 ---
+  // Simplificado para usar la nueva función del servicio
+  const cargarMensajes = async () => {
+    try {
+      // Usamos la función que apunta a TU API
+      const data = await mensajesService.obtenerMensajes(); 
+      setMensajes(data);
+    } catch (err) {
+      console.error('Error al cargar mensajes:', err);
+    } finally {
+      setLoadingMessages(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,11 +63,13 @@ const Chat = () => {
     setLoading(true);
 
     try {
+      // Esta función (enviarMensaje) sigue apuntando a la API del examen (Serie II)
       await mensajesService.enviarMensaje(mensaje);
       setSuccess('¡Mensaje enviado correctamente!');
       setMensaje('');
       
-      // Limpiar mensaje de éxito después de 3 segundos
+      await cargarMensajes(); // Recargar mensajes de TU API
+      
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       setError(err.message || 'Error al enviar mensaje');
@@ -51,55 +83,117 @@ const Chat = () => {
     navigate('/login');
   };
 
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  };
+
   return (
-    <div className="chat-container">
-      <div className="chat-header">
-        <div>
-          <h1>Chat - SERIE II</h1>
-          <p className="chat-user">Usuario: <strong>{username}</strong></p>
+    <div className="chat-page">
+      {/* Header con información del estudiante */}
+      <div className="chat-page-header">
+        <div className="student-info-banner">
+          <div className="student-details">
+            <h2>Nataly Michell Cux Recinos</h2>
+            <p>Carné: 1890-22-18009</p>
+          </div>
+          <div className="user-session">
+            <p className="username-display">👤 {username}</p>
+            <button onClick={handleLogout} className="btn btn-logout">
+              🚪 Cerrar Sesión
+            </button>
+          </div>
         </div>
-        <button onClick={handleLogout} className="btn btn-logout">
-          Cerrar Sesión
-        </button>
       </div>
 
-      <div className="chat-content">
-        {/* SERIE III: Área de visualización de mensajes */}
-        <div className="chat-messages">
-          <div className="messages-placeholder">
-            <h3>📝 Visualización de Mensajes</h3>
-            <p>SERIE III - Pendiente de implementación</p>
-            <p className="info-text">
-              Aquí se mostrarán los mensajes obtenidos directamente de la base de datos SQL Server
-            </p>
-            <div className="db-info">
-              <p><strong>Conexión programada a:</strong></p>
-              <p>Server: svr-sql-ctezo.southcentralus.cloudapp.azure.com</p>
-              <p>BD: db_DesaWebDevUMG</p>
-              <p>Tabla: [dbo].[Chat_Mensaje]</p>
+      <div className="chat-container">
+        {/* Sección de mensajes - SERIE III */}
+        <div className="messages-panel">
+          <div className="panel-header">
+            <div className="panel-title">
+              <h2>💬 Chat en Tiempo Real</h2>
             </div>
+            <button 
+              onClick={cargarMensajes} 
+              className="btn-refresh"
+              disabled={loadingMessages}
+              title="Actualizar mensajes"
+            >
+              🔄
+            </button>
+          </div>
+
+          <div className="messages-container">
+            {loadingMessages ? (
+              <div className="loading-state">
+                <div className="spinner"></div>
+                <p>Cargando mensajes...</p>
+              </div>
+            ) : mensajes.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">📭</div>
+                <h3>No hay mensajes</h3>
+                <p>¡Sé el primero en escribir algo!</p>
+              </div>
+            ) : (
+              // --- CAMBIO 2 ---
+              // Aquí se actualizan los nombres de las propiedades
+              // para que coincidan con el JSON de tu API (camelCase)
+              <div className="messages-list">
+                {mensajes.map((msg, index) => (
+                  <div 
+                    // Usamos 'idMensaje' que viene de tu API
+                    key={msg.idMensaje || index} 
+                    // Usamos 'loginEmisor' (camelCase)
+                    className={`message-bubble ${msg.loginEmisor === username ? 'own-message' : 'other-message'}`}
+                  >
+                    <div className="message-author">
+                      {/* Usamos 'loginEmisor' (camelCase) */}
+                      {msg.loginEmisor === username ? '👤 Tú' : `👥 ${msg.loginEmisor}`}
+                    </div>
+                    <div className="message-text">
+                      {/* 'contenido' (camelCase) estaba bien */}
+                      {msg.contenido}
+                    </div>
+                    <div className="message-time">
+                      {/* Usamos 'fechaEnvio' (camelCase) */}
+                      {formatDate(msg.fechaEnvio)}
+                    </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+            )}
           </div>
         </div>
 
-        {/* SERIE II: Formulario de envío */}
-        <div className="chat-input-section">
-          <h2>Enviar Mensaje</h2>
-          
-          {error && (
-            <div className="alert alert-error">
-              {error}
+        {/* Sección de envío - SERIE II */}
+        <div className="input-panel">
+          {/* ... (El resto del formulario de envío no cambia) ... */}
+          <div className="panel-header">
+            <div className="panel-title">
+              <h2>✍️ Enviar Mensaje</h2>
             </div>
-          )}
-
-          {success && (
-            <div className="alert alert-success">
-              {success}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="chat-form">
-            <div className="form-group">
-              <label htmlFor="mensaje">Tu mensaje:</label>
+          </div>
+          <div className="input-container">
+            {error && (
+              <div className="alert alert-error">
+                ❌ {error}
+              </div>
+            )}
+            {success && (
+              <div className="alert alert-success">
+                ✅ {success}
+              </div>
+            )}
+            <form onSubmit={handleSubmit} className="message-form">
               <textarea
                 id="mensaje"
                 name="mensaje"
@@ -109,24 +203,27 @@ const Chat = () => {
                 rows="4"
                 disabled={loading}
                 required
+                className="message-textarea"
               />
+              <button 
+                type="submit" 
+                className="btn btn-send"
+                disabled={loading || !mensaje.trim()}
+              >
+                {loading ? (
+                  <>
+                    <span className="spinner-small"></span>
+                    Enviando...
+                  </>
+                ) : (
+                  <>📤 Enviar Mensaje</>
+                )}
+              </button>
+            </form>
+            <div className="project-info">
+              <p><strong>Examen Final - Desarrollo Web</strong></p>
+              <p className="info-detail">Autenticación JWT • Chat en Tiempo Real • SQL Server</p>
             </div>
-
-            <button 
-              type="submit" 
-              className="btn btn-primary btn-send"
-              disabled={loading}
-            >
-              {loading ? 'Enviando...' : '📤 Enviar Mensaje'}
-            </button>
-          </form>
-
-          <div className="api-info">
-            <p><strong>ℹ️ Información de la petición:</strong></p>
-            <p>Endpoint: POST /api/Mensajes</p>
-            <p>Cod_Sala: 0</p>
-            <p>Login_Emisor: {username}</p>
-            <p>Authorization: Bearer Token ✓</p>
           </div>
         </div>
       </div>

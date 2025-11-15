@@ -39,8 +39,13 @@ const Login = () => {
   return (
     <div className="login-container">
       <div className="login-box">
+        <div className="login-header-info">
+          <h3>Nataly Michell Cux Recinos</h3>
+          <p className="carnet-info">Carné: 1890-22-18009</p>
+        </div>
+        
         <h1 className="login-title">Iniciar Sesión</h1>
-        <p className="login-subtitle">SERIE I - Autenticación</p>
+        <p className="login-subtitle">Examen Final - Desarrollo Web</p>
 
         {error && (
           <div className="alert alert-error">
