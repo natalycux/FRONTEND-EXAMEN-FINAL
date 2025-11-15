@@ -1,8 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react'; // Se quita 'useRef'
 import { useNavigate } from 'react-router-dom';
+
+// Rutas actualizadas asumiendo que 'services' y 'Chat.css' están en 'docs'
 import authService from '../../services/authService';
-import mensajesService from '../../services/mensajesService'; // Asegúrate que la ruta sea correcta
-import './Chat.css';
+import mensajesService from '../../services/mensajesService';
+import './Chat.css'; 
 
 const Chat = () => {
   const navigate = useNavigate();
@@ -12,36 +14,34 @@ const Chat = () => {
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const messagesEndRef = useRef(null);
+  
+  // Se eliminó 'messagesEndRef'
   const username = authService.getUsername();
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  // Se eliminó la función 'scrollToBottom'
 
   useEffect(() => {
+    // Verificar autenticación
     if (!authService.isAuthenticated()) {
       navigate('/login');
       return;
     }
     
+    // Cargar mensajes iniciales
     cargarMensajes();
     
+    // Actualizar mensajes cada 5 segundos
     const interval = setInterval(cargarMensajes, 5000);
     
     return () => clearInterval(interval);
   }, [navigate]);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [mensajes]);
+  // Se eliminó el 'useEffect' que llamaba a 'scrollToBottom'
 
-  // --- CAMBIO 1 ---
-  // Simplificado para usar la nueva función del servicio
   const cargarMensajes = async () => {
     try {
-      // Usamos la función que apunta a TU API
-      const data = await mensajesService.obtenerMensajes(); 
+      // Esta función llama a tu API (con OrderByDescending)
+      const data = await mensajesService.obtenerMensajes();
       setMensajes(data);
     } catch (err) {
       console.error('Error al cargar mensajes:', err);
@@ -63,12 +63,13 @@ const Chat = () => {
     setLoading(true);
 
     try {
-      // Esta función (enviarMensaje) sigue apuntando a la API del examen (Serie II)
+      // Esta función (enviarMensaje) usa la API del examen
       await mensajesService.enviarMensaje(mensaje);
       setSuccess('¡Mensaje enviado correctamente!');
       setMensaje('');
       
-      await cargarMensajes(); // Recargar mensajes de TU API
+      // Recargar mensajes inmediatamente
+      await cargarMensajes();
       
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
@@ -143,32 +144,26 @@ const Chat = () => {
                 <p>¡Sé el primero en escribir algo!</p>
               </div>
             ) : (
-              // --- CAMBIO 2 ---
-              // Aquí se actualizan los nombres de las propiedades
-              // para que coincidan con el JSON de tu API (camelCase)
               <div className="messages-list">
+                {/* Los mensajes se renderizan como vienen de la API (nuevos primero) */}
                 {mensajes.map((msg, index) => (
                   <div 
-                    // Usamos 'idMensaje' que viene de tu API
                     key={msg.idMensaje || index} 
-                    // Usamos 'loginEmisor' (camelCase)
                     className={`message-bubble ${msg.loginEmisor === username ? 'own-message' : 'other-message'}`}
                   >
                     <div className="message-author">
-                      {/* Usamos 'loginEmisor' (camelCase) */}
                       {msg.loginEmisor === username ? '👤 Tú' : `👥 ${msg.loginEmisor}`}
                     </div>
                     <div className="message-text">
-                      {/* 'contenido' (camelCase) estaba bien */}
                       {msg.contenido}
                     </div>
                     <div className="message-time">
-                      {/* Usamos 'fechaEnvio' (camelCase) */}
                       {formatDate(msg.fechaEnvio)}
                     </div>
                   </div>
                 ))}
-                <div ref={messagesEndRef} />
+                
+                {/* Se eliminó el div 'messagesEndRef' */}
               </div>
             )}
           </div>
@@ -176,7 +171,6 @@ const Chat = () => {
 
         {/* Sección de envío - SERIE II */}
         <div className="input-panel">
-          {/* ... (El resto del formulario de envío no cambia) ... */}
           <div className="panel-header">
             <div className="panel-title">
               <h2>✍️ Enviar Mensaje</h2>
